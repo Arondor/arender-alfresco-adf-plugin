@@ -54,7 +54,11 @@ export class ArenderViewerComponent implements OnInit {
       userName = u.id;
     });
 
-    alfTicket = this.authenticationService.getTicketEcm();
+    if (this.authenticationService.isOauth()) {
+      alfTicket = this.apiService.getInstance().config.ticketEcm
+    } else {
+      alfTicket = this.authenticationService.getTicketEcm();
+    }
 
     this.route.params.subscribe((params) => {
       const id = params.nodeId;
