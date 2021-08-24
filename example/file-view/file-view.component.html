@@ -12,22 +12,15 @@
       <adf-info-drawer-tab [label]="'APP.INFO_DRAWER.VERSIONS' | translate">
         <mat-card>
           <mat-card-content>
-            <adf-version-manager
-              [node]="node"
-              (uploadError)="onUploadError($event)"
-            >
+            <adf-version-manager [node]="node" (uploadError)="onUploadError($event)">
             </adf-version-manager>
           </mat-card-content>
         </mat-card>
       </adf-info-drawer-tab>
     </adf-info-drawer>
   </ng-template>
-  
 
-  <adf-viewer
-    [nodeId]="nodeId"
-    (showViewerChange)="onViewerVisibilityChanged()"
-	>
+  <adf-viewer [nodeId]="nodeId" (showViewerChange)="onViewerVisibilityChanged()">
 
     <adf-viewer-toolbar-actions>
       <button mat-icon-button>
@@ -40,8 +33,8 @@
         <mat-icon>bug_report</mat-icon>
       </button>
     </adf-viewer-toolbar-actions>
-	
-	<adf-viewer-extension [supportedExtensions]="['pdf', 'zip', 'docx', 'docm', 'dotx', 'dotm', 'doc', 'dot',
+
+    <adf-viewer-extension [supportedExtensions]="['pdf', 'zip', 'docx', 'docm', 'dotx', 'dotm', 'doc', 'dot',
           'rtf', 'odt', 'ott',
           'xlsx', 'xlsm', 'xls', 'xlt', 'xml', 'csv',
           'ods', 'ots',
@@ -53,42 +46,10 @@
           'dwg', 'dxf', 'tif', 'tiff', 'dcm',
           'mda', 'ica', 'mmr', 'mca',
           'jpg', 'jpeg', 'jpe', 'jfif', 'jp2', 'jpf', 'jpx', 'j2k', 'j2c', 'jpc',
-          'png', 'gif', 'webp', 'bmp']">
+          'png', 'gif', 'webp', 'bmp']" #extension>
       <ng-template>
-	    <iframe width="100%" height="100%" [src]="urlSafe" allowfullscreen></iframe> 
-	  </ng-template>
-	</adf-viewer-extension>
-
-    <!--
-        <adf-viewer-extension [supportedExtensions]="['json']">
-            <ng-template let-urlFileContent="urlFileContent" let-extension="extension">
-            <h1>JSON VIEWER</h1>
-            </ng-template>
-        </adf-viewer-extension>
-        -->
-
-    <!--
-        <adf-viewer-extension [supportedExtensions]="['png']">
-            <ng-template>
-            <h1>PNG Viewer</h1>
-            </ng-template>
-        </adf-viewer-extension>
-        -->
-
-    <!--
-        <adf-viewer-extension [supportedExtensions]="['pdf']">
-            <ng-template>
-            <h1>PDF Viewer</h1>
-            </ng-template>
-        </adf-viewer-extension>
-        -->
-
-    <!--
-        <extension-viewer [supportedExtensions]="['obj','3DS']" #extension>
-            <ng-template let-urlFileContent="urlFileContent" let-extension="extension" >
-            <threed-viewer [urlFile]="urlFileContent" [extension]="extension" ></threed-viewer>
-            </ng-template>
-        </extension-viewer>
-        -->
+        <arender-viewer [documentBuilderEnabled]='true'></arender-viewer>
+      </ng-template>
+    </adf-viewer-extension>
   </adf-viewer>
 </ng-container>
