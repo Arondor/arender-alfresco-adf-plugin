@@ -20,9 +20,8 @@
     </adf-info-drawer>
   </ng-template>
 
-  <adf-viewer [nodeId]="nodeId" (showViewerChange)="onViewerVisibilityChanged()">
-
-    <adf-viewer-toolbar-actions>
+  <arender-viewer [nodeId]="nodeId">
+    <arender-viewer-toolbar-actions>
       <button mat-icon-button>
         <mat-icon>alarm</mat-icon>
       </button>
@@ -32,24 +31,12 @@
       <button mat-icon-button>
         <mat-icon>bug_report</mat-icon>
       </button>
-    </adf-viewer-toolbar-actions>
+    </arender-viewer-toolbar-actions>
 
-    <adf-viewer-extension [supportedExtensions]="['pdf', 'zip', 'docx', 'docm', 'dotx', 'dotm', 'doc', 'dot',
-          'rtf', 'odt', 'ott',
-          'xlsx', 'xlsm', 'xls', 'xlt', 'xml', 'csv',
-          'ods', 'ots',
-          'pptx', 'pptm', 'ppt', 'pps',
-          'odp', 'otp', 'vsdx',
-          'msg', 'eml',
-          'html', 'htm',
-          'txt',
-          'dwg', 'dxf', 'tif', 'tiff', 'dcm',
-          'mda', 'ica', 'mmr', 'mca',
-          'jpg', 'jpeg', 'jpe', 'jfif', 'jp2', 'jpf', 'jpx', 'j2k', 'j2c', 'jpc',
-          'png', 'gif', 'webp', 'bmp']" #extension>
-      <ng-template>
-        <arender-viewer [documentBuilderEnabled]='true'></arender-viewer>
-      </ng-template>
-    </adf-viewer-extension>
-  </adf-viewer>
+    <arender-viewer-extra-sidebar>
+      <h1>test</h1>
+    </arender-viewer-extra-sidebar>
+
+  </arender-viewer>
+
 </ng-container>

@@ -1,8 +1,6 @@
-import { Component, ViewEncapsulation, OnInit, Input } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, Input, EventEmitter, Output } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AppConfigService, AuthenticationService, EcmUserService, AlfrescoApiService, LogService, NodesApiService } from '@alfresco/adf-core';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router, PRIMARY_OUTLET, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'arender-viewer',
@@ -13,34 +11,82 @@ import { Router, PRIMARY_OUTLET, ActivatedRoute } from '@angular/router';
 })
 export class ArenderViewerComponent implements OnInit {
 
+  /** Node Id of the file to load. */
+  @Input()
+  nodeId: string = null;
+
+  /** If `true` then show the Viewer as a full page over the current content.
+   * Otherwise fit inside the parent div.
+   */
+  @Input()
+  overlayMode = false;
+
+  /** Hide or show the viewer */
+  @Input()
+  showViewer = true;
+
+  /** Hide or show the toolbar */
+  @Input()
+  showToolbar = true;
+
+  /** Toggles before/next navigation. You can use the arrow buttons to navigate
+   * between documents in the collection.
+   */
+  @Input()
+  allowNavigate = false;
+
+  /** Toggles the "before" ("<") button. Requires `allowNavigate` to be enabled. */
+  @Input()
+  canNavigateBefore = true;
+
+  /** Toggles the next (">") button. Requires `allowNavigate` to be enabled. */
+  @Input()
+  canNavigateNext = true;
+
+  /** Allow the left the sidebar. */
+  @Input()
+  allowLeftSidebar = false;
+
+  /** Allow the right sidebar. */
+  @Input()
+  allowRightSidebar = false;
+
+  /** Toggles right sidebar visibility. Requires `allowRightSidebar` to be set to `true`. */
+  @Input()
+  showRightSidebar = false;
+
+  /** Toggles left sidebar visibility. Requires `allowLeftSidebar` to be set to `true`. */
+  @Input()
+  showLeftSidebar = false;
+
   @Input()
   documentBuilderEnabled: boolean = false;
 
-  nameFile: string;
+  /** Emitted when the viewer is shown or hidden. */
+  @Output()
+  showViewerChange = new EventEmitter<boolean>();
 
-  @Input()
-  nodeId: string;
+  /** Emitted when user clicks 'Navigate Before' ("<") button. */
+  @Output()
+  navigateBefore = new EventEmitter<MouseEvent | KeyboardEvent>();
 
-  safeURL: SafeResourceUrl;
+  /** Emitted when user clicks 'Navigate Next' (">") button. */
+  @Output()
+  navigateNext = new EventEmitter<MouseEvent | KeyboardEvent>();
 
-  showViewer: boolean = true;
+  safeURL: SafeResourceUrl = null;
+
+  extensions = this.appConfig.get<string>('arender.extensions');
 
   constructor(
     private apiService: AlfrescoApiService,
+    private logService: LogService,
     private appConfig: AppConfigService,
     private authenticationService: AuthenticationService,
     private ecmUserService: EcmUserService,
-    private logService: LogService,
     private nodeApiService: NodesApiService,
-    private route: ActivatedRoute,
-    private router: Router,
     private sanitizer: DomSanitizer,
-    private snackBar: MatSnackBar
   ) { }
-
-  isSourceDefined(): boolean {
-    return this.nodeId ? true : false;
-  }
 
   ngOnInit() {
     let alfTicket: string;
@@ -60,35 +106,25 @@ export class ArenderViewerComponent implements OnInit {
       alfTicket = this.authenticationService.getTicketEcm();
     }
 
-    this.route.params.subscribe((params) => {
-      const id = params.nodeId;
-      if (id) {
-        this.nodeApiService.getNode(id).subscribe(
-          (node) => {
-            if (node) {
-              this.nodeId = id;
-
-              this.apiService
-                .getInstance()
-                .webScript.executeWebScript('GET', 'api/version', { nodeRef: 'workspace://SpacesStore/' + this.nodeId }, 'alfresco', 's')
-                .then(
-                  (webScriptdata) => {
-                    versionLabel = webScriptdata[0]['label'];
-                    arenderURL = arenderHost + this.buildArenderURLParameters(userName, alfTicket, versionLabel, node.isFolder);
-                    this.safeURL = this.sanitizer.bypassSecurityTrustResourceUrl(arenderURL);
-                  },
-                  (error) => {
-                    this.logService.log('Error' + error);
-                  }
-                );
-              return;
-            }
-            this.router.navigate(["/files", id]);
-          },
-          () => this.router.navigate(["/files", id])
-        );
+    this.nodeApiService.getNode(this.nodeId).subscribe(
+      (node) => {
+        if (node) {
+          this.apiService
+            .getInstance()
+            .webScript.executeWebScript('GET', 'api/version', { nodeRef: 'workspace://SpacesStore/' + this.nodeId }, 'alfresco', 's')
+            .then(
+              (webScriptdata) => {
+                versionLabel = webScriptdata[0]['label'];
+                arenderURL = arenderHost + this.buildArenderURLParameters(userName, alfTicket, versionLabel, node.isFolder);
+                this.safeURL = this.sanitizer.bypassSecurityTrustResourceUrl(arenderURL);
+              },
+              (error) => {
+                this.logService.log('Error' + error);
+              }
+            );
+        }
       }
-    });
+    );
   }
 
   buildArenderURLParameters(userName: string, alfTicket: string, versionLabel: string, isFolder: boolean): string {
@@ -111,14 +147,15 @@ export class ArenderViewerComponent implements OnInit {
     return arenderParams;
   }
 
-  onUploadError(errorMessage: string) {
-    this.snackBar.open(errorMessage, "", { duration: 4000 });
+  onNavigateBeforeClick(event: MouseEvent | KeyboardEvent) {
+    this.navigateBefore.next(event);
   }
 
-  onViewerVisibilityChanged() {
-    const primaryUrl = this.router
-      .parseUrl(this.router.url)
-      .root.children[PRIMARY_OUTLET].toString();
-    this.router.navigateByUrl(primaryUrl);
+  onNavigateNextClick(event: MouseEvent | KeyboardEvent) {
+    this.navigateNext.next(event);
+  }
+
+  onVisibilityChanged(event: boolean) {
+    this.showViewerChange.next(event)
   }
 }
