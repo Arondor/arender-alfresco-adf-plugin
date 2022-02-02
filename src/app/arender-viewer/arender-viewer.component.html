@@ -1,0 +1,25 @@
+<adf-viewer [nodeId]="nodeId" [overlayMode]="overlayMode" [showViewer]="showViewer" [showToolbar]="showToolbar"
+  [allowNavigate]="allowNavigate" [canNavigateBefore]="canNavigateBefore" [canNavigateNext]="canNavigateNext"
+  [allowLeftSidebar]="allowLeftSidebar" [allowRightSidebar]="allowRightSidebar" [showRightSidebar]="showRightSidebar"
+  [showLeftSidebar]="showLeftSidebar" [allowPrint]="false" [allowDownload]="false" [allowFullScreen]="false"
+  (showViewerChange)="onVisibilityChanged($event)" (navigateBefore)="onNavigateBeforeClick($event)"
+  (navigateNext)="onNavigateNextClick($event)" #viewer>
+
+  <adf-viewer-toolbar-actions>
+    <ng-content select="arender-viewer-toolbar-actions"></ng-content>
+  </adf-viewer-toolbar-actions>
+
+  <adf-viewer-sidebar>
+    <ng-content select="arender-viewer-extra-sidebar"></ng-content>
+  </adf-viewer-sidebar>
+
+  <adf-viewer-extension [supportedExtensions]="extensions">
+    <ng-template>
+      <div class="adf-viewer-layout-content adf-viewer__fullscreen-container">
+        <ng-container *ngIf="safeURL">
+          <iframe class="full-window" [src]="safeURL" allowfullscreen></iframe>
+        </ng-container>
+      </div>
+    </ng-template>
+  </adf-viewer-extension>
+</adf-viewer>
