@@ -2,11 +2,11 @@
   <ng-template let-node="node" #sidebarTemplate>
     <adf-info-drawer [title]="'APP.INFO_DRAWER.TITLE' | translate">
       <adf-info-drawer-tab [label]="'APP.INFO_DRAWER.COMMENTS' | translate">
-        <adf-comments [nodeId]="nodeId"></adf-comments>
+        <adf-comments [id]="nodeId"></adf-comments>
       </adf-info-drawer-tab>
 
       <adf-info-drawer-tab [label]="'APP.INFO_DRAWER.PROPERTIES' | translate">
-        <adf-content-metadata-card [node]="node"></adf-content-metadata-card>
+        <adf-content-metadata-card [node]="node" [preset]="'*'"></adf-content-metadata-card>
       </adf-info-drawer-tab>
 
       <adf-info-drawer-tab [label]="'APP.INFO_DRAWER.VERSIONS' | translate">
@@ -20,23 +20,6 @@
     </adf-info-drawer>
   </ng-template>
 
-  <arender-viewer [nodeId]="nodeId">
-    <arender-viewer-toolbar-actions>
-      <button mat-icon-button>
-        <mat-icon>alarm</mat-icon>
-      </button>
-      <button mat-icon-button>
-        <mat-icon>backup</mat-icon>
-      </button>
-      <button mat-icon-button>
-        <mat-icon>bug_report</mat-icon>
-      </button>
-    </arender-viewer-toolbar-actions>
-
-    <arender-viewer-extra-sidebar>
-      <h1>test</h1>
-    </arender-viewer-extra-sidebar>
-
-  </arender-viewer>
+  <app-arender-viewer [nodeId]="nodeId"> </app-arender-viewer>
 
 </ng-container>
