@@ -1,11 +1,14 @@
-import { Component, ViewEncapsulation, OnInit, Input, EventEmitter, Output } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, Input, EventEmitter, Output, Injector } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { AppConfigService, AuthenticationService, EcmUserService, AlfrescoApiService, LogService, NodesApiService } from '@alfresco/adf-core';
+import { AppConfigService, AuthenticationService, LogService, StorageService } from '@alfresco/adf-core';
+import { WebscriptApi } from '@alfresco/js-api';
+import { AlfrescoApiService, NodesApiService, PeopleContentService } from '@alfresco/adf-content-services';
+import { Location } from '@angular/common';
 
 @Component({
-  selector: 'arender-viewer',
+  selector: 'app-arender-viewer',
   templateUrl: './arender-viewer.component.html',
-  styleUrls: ['./arender-viewer.component.scss'],
+  styleUrls: ['./arender-viewer.component.css'],
   host: { class: 'arender-viewer' },
   encapsulation: ViewEncapsulation.None
 })
@@ -13,7 +16,7 @@ export class ArenderViewerComponent implements OnInit {
 
   /** Node Id of the file to load. */
   @Input()
-  nodeId: string = null;
+  nodeId!: string;
 
   /** If `true` then show the Viewer as a full page over the current content.
    * Otherwise fit inside the parent div.
@@ -60,7 +63,7 @@ export class ArenderViewerComponent implements OnInit {
   showLeftSidebar = false;
 
   @Input()
-  documentBuilderEnabled: boolean = false;
+  documentBuilderEnabled = false;
 
   /** Emitted when the viewer is shown or hidden. */
   @Output()
@@ -74,21 +77,33 @@ export class ArenderViewerComponent implements OnInit {
   @Output()
   navigateNext = new EventEmitter<MouseEvent | KeyboardEvent>();
 
-  safeURL: SafeResourceUrl = null;
+  safeURL!: SafeResourceUrl;
+  name = '/';
 
-  extensions = this.appConfig.get<string>('arender.extensions');
+  webScript: WebscriptApi;
 
-  constructor(
-    private apiService: AlfrescoApiService,
-    private logService: LogService,
-    private appConfig: AppConfigService,
-    private authenticationService: AuthenticationService,
-    private ecmUserService: EcmUserService,
-    private nodeApiService: NodesApiService,
-    private sanitizer: DomSanitizer,
-  ) { }
+  private apiService: AlfrescoApiService;
+  private logService: LogService;
+  private appConfig: AppConfigService;
+  private authenticationService: AuthenticationService;
+  private ecmUserService: PeopleContentService;
+  private nodeApiService: NodesApiService;
+  private sanitizer: DomSanitizer;
+  private storageService: StorageService;
 
-  ngOnInit() {
+  constructor(private injector: Injector, private location: Location) {
+    this.apiService = injector.get<AlfrescoApiService>(AlfrescoApiService);
+    this.logService = injector.get<LogService>(LogService);
+    this.appConfig = injector.get<AppConfigService>(AppConfigService);
+    this.authenticationService = injector.get<AuthenticationService>(AuthenticationService);
+    this.ecmUserService = injector.get<PeopleContentService>(PeopleContentService);
+    this.nodeApiService = injector.get<NodesApiService>(NodesApiService);
+    this.sanitizer = injector.get<DomSanitizer>(DomSanitizer);
+    this.storageService = injector.get<StorageService>(StorageService);
+    this.webScript = new WebscriptApi(this.apiService.getInstance());
+  }
+
+  async ngOnInit() {
     let alfTicket: string;
     let arenderHost: string;
     let arenderURL: string;
@@ -99,22 +114,28 @@ export class ArenderViewerComponent implements OnInit {
     this.ecmUserService.getCurrentUserInfo().subscribe(u => {
       userName = u.id;
     });
-
     if (this.authenticationService.isOauth()) {
-      alfTicket = this.apiService.getInstance().config.ticketEcm
+      alfTicket = this.apiService.getInstance().config.ticketEcm || "";
+      // Try to fallback in a standard a way to get the ticket
+      if (alfTicket === undefined) {
+        alfTicket = this.apiService.getInstance().contentAuth.getTicket();
+      }
+      // Ticket is still undefined, making call to Alfresco API to get the ticket
+      if (alfTicket === undefined) {
+        alfTicket = await this.getTicketFromAPI();
+      }
     } else {
-      alfTicket = this.authenticationService.getTicketEcm();
+      alfTicket = this.authenticationService.getToken();
     }
 
     this.nodeApiService.getNode(this.nodeId).subscribe(
       (node) => {
         if (node) {
-          this.apiService
-            .getInstance()
-            .webScript.executeWebScript('GET', 'api/version', { nodeRef: 'workspace://SpacesStore/' + this.nodeId }, 'alfresco', 's')
+          this.webScript.executeWebScript('GET', 'api/version', { nodeRef: 'workspace://SpacesStore/' + this.nodeId }, 'alfresco', 's')
             .then(
               (webScriptdata) => {
                 versionLabel = webScriptdata[0]['label'];
+                this.name = '/' + webScriptdata[0]['name'];
                 arenderURL = arenderHost + this.buildArenderURLParameters(userName, alfTicket, versionLabel, node.isFolder);
                 this.safeURL = this.sanitizer.bypassSecurityTrustResourceUrl(arenderURL);
               },
@@ -125,6 +146,10 @@ export class ArenderViewerComponent implements OnInit {
         }
       }
     );
+  }
+
+  onExtensionChange(ext: any) {
+    console.log('onExtensionChange: ' + ext);
   }
 
   buildArenderURLParameters(userName: string, alfTicket: string, versionLabel: string, isFolder: boolean): string {
@@ -147,6 +172,25 @@ export class ArenderViewerComponent implements OnInit {
     return arenderParams;
   }
 
+  async getTicketFromAPI(): Promise<any> {
+    const uri = this.appConfig.get<string>('ecmHost') + '/alfresco/api/-default-/public/authentication/versions/1/tickets/-me-';
+
+    let ssoToken: string;
+    if (this.apiService.getInstance().oauth2Auth.token) {
+      ssoToken = this.apiService.getInstance().oauth2Auth.token;
+    } else {
+      ssoToken = this.storageService.getItem('access_token') || "";
+    }
+
+    const headerParams = {
+        Authorization: 'Bearer ' + ssoToken
+    };
+
+    const response = await this.apiService.getInstance().oauth2Auth.
+    callCustomApi(uri, 'GET', {}, {}, headerParams, {}, {}, ['application/json'], ['application/json']);
+    return response.entry.id;
+  }
+
   onNavigateBeforeClick(event: MouseEvent | KeyboardEvent) {
     this.navigateBefore.next(event);
   }
@@ -156,6 +200,6 @@ export class ArenderViewerComponent implements OnInit {
   }
 
   onVisibilityChanged(event: boolean) {
-    this.showViewerChange.next(event)
+    this.location.back();
   }
 }
